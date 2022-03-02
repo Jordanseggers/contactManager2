@@ -1,7 +1,7 @@
 let model = {
   _formatContacts: function (contacts) { //splits tags string into array of tags
     contacts.forEach(contact => {
-      if(contact["tags"]) {
+      if (contact["tags"]) {
         contact["tags"] = contact["tags"].split(',');
       }
     });
@@ -16,7 +16,7 @@ let model = {
     }).catch(() => alert('can\'t get contacts'));
     return this._formatContacts(contacts);
   }
-}
+};
 
 let view = {
   getElement: function (selector, ancestorElement) {
@@ -28,7 +28,7 @@ let view = {
     }
     return element;
   },
-  
+
   createElement: function (tag, classNames) {
     let element = document.createElement(tag);
     if (classNames) {
@@ -55,13 +55,14 @@ let view = {
     let contactList = this.createElement("ul", "contacts-list");
 
     if (contacts.length === 0) {
-      let noContactsMessage = this.createElement('p').textContent = "There are no contacts";
+      let noContactsMessage = this.createElement('p');
+      noContactsMessage.textContent = "There are no contacts";
       contactList.append(noContactsMessage);
     } else {
       let contactTemplate = this.setupTemplate("#contactCard");
       contactList.innerHTML = contactTemplate({contacts:contacts});
       contactList.addEventListener("click", (event) => {
-        if(event.target.classList.contains("delete-contact")) {
+        if (event.target.classList.contains("delete-contact")) {
           //deleteContact(event.target.parentNode);
           console.log("delete was pushed");
         } else if (event.target.classList.contains("edit-contact")) {
@@ -79,16 +80,16 @@ let view = {
 
     this.render(contactList);
   }
-}
+};
 
 let controller = {
   contacts: [], //arr of contacts formatted with tags as an array of strings
 
   displayContacts: async function () {
-    contacts = await model.getContacts();
-    contactsView = view.setUpContactsView(contacts);
+    this.contacts = await model.getContacts();
+    view.setUpContactsView(this.contacts);
   }
-}
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   controller.displayContacts();
