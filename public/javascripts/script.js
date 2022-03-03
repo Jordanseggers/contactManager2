@@ -1,12 +1,4 @@
 let model = {
-  _formatContacts: function (contacts) { //splits tags string into array of tags
-    contacts.forEach(contact => {
-      if (contact["tags"]) {
-        contact["tags"] = contact["tags"].split(',');
-      }
-    });
-    return contacts;
-  },
 
   getContacts: async function () {
     let contacts = await fetch('api/contacts', {
@@ -14,12 +6,23 @@ let model = {
     }).then(res => {
       return res.json();
     }).catch(() => alert('can\'t get contacts'));
-    return model._formatContacts(contacts);
+    return contacts;
+  },
+
+  addContact: async function (data) {
+    await fetch('api/contacts', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(jsonData)
+    }).then()
+    .catch(() => alert('can\'t add contact'));
+  
+    controller.displayContacts();
   }
 };
 
 let view = {
-  getElement: function (selector, ancestorElement) {
+  _getElement: function (selector, ancestorElement) {
     let element;
     if (ancestorElement) {
       element = ancestorElement.querySelector(selector);
@@ -29,7 +32,7 @@ let view = {
     return element;
   },
 
-  createElement: function (tag, classNames) {
+  _createElement: function (tag, classNames) {
     let element = document.createElement(tag);
     if (classNames) {
       classNames.split(" ").forEach(className => {
@@ -40,40 +43,40 @@ let view = {
   },
 
   _setupTemplate: function (templateId) {
-    let html = view.getElement(templateId).innerHTML;
+    let html = view._getElement(templateId).innerHTML;
     let template = Handlebars.compile(html);
     return template;
   },
 
-  render: function (view) {
-    let app = this.getElement('#root');
+  _render: function (view) {
+    let app = this._getElement('#root');
     app.innerHTML = '';
     app.append(view);
   },
 
   _setUpNewContactForm: function () {
     let formTemplate = view._setupTemplate("#contact-form");
-    let div = view.createElement("div");
+    let div = view._createElement("div");
     div.innerHTML = formTemplate({
       full_name: '',
       email: '',
       phone_number: ''
     });
 
-    view.render(div);
+    view._render(div);
   },
 
   _setUpExistingContactForm: function (existingId) {
     let formTemplate = view._setupTemplate("#contact-form");
-    let div = view.createElement("div");
+    let form = view._createElement("div");
     let existingContactData = controller.formContactData(existingId);
-    div.innerHTML = formTemplate(existingContactData);
+    form.innerHTML = formTemplate(existingContactData);
     
-    view.render(div);
+    view._render(form);
   },
 
   _setUpZeroContactsView: function () {
-    let div = view.createElement('div');
+    let div = view._createElement('div');
     let zeroContactsTemplate = view.setupTemplate("#no-contacts");
     div.innerHTML = zeroContactsTemplate();
     div.addEventListener("click", (event) => {
@@ -83,18 +86,18 @@ let view = {
       }
     });
 
-    view.render(div);
+    view._render(div);
   },
 
   setUpMainBarEvents: function () {
-    let mainBar = view.getElement(".row-well");
-    let addContactBtn = view.getElement(".btn-add-contact", mainBar);
+    let mainBar = view._getElement(".row-well");
+    let addContactBtn = view._getElement(".btn-add-contact", mainBar);
 
     addContactBtn.addEventListener("click", view._setUpNewContactForm);
   },
 
   setUpContactsView: function (contacts) {
-    let contactList = view.createElement("ul", "contacts-list");
+    let contactList = view._createElement("ul", "contacts-list");
 
     if (contacts.length === 0) {
       view._setUpZeroContactsView();
@@ -117,12 +120,21 @@ let view = {
       });
     }
 
-    view.render(contactList);
+    view._render(contactList);
   }
 };
 
 let controller = {
   contacts: [], //arr of contacts formatted with tags as an array of strings
+
+  _formatAllContactTagsToArray: function (contacts) { //splits tags string into array of tags
+    contacts.forEach(contact => {
+      if (contact["tags"]) {
+        contact["tags"] = contact["tags"].split(',');
+      }
+    });
+    return contacts;
+  },
 
   _formatTagsToDisplayString: function (contact) {
     let newFormattedContactData = {...contact};
@@ -132,16 +144,43 @@ let controller = {
     return newFormattedContactData;
   },
 
+  _formatTagsToServerString: function (dataObject) {
+    let serverTagString = dataObject["tags"].split(',').map(tag => {
+      return tag.trim();
+    });
+    dataObject["tags"] = serverTagString;
+    return dataObject;
+  },
+
+  _formDataToJSON: function(formData) {
+    let json = {};
+    for (const pair of formData.entries()) {
+      json[pair[0]] = pair[1];
+    }
+
+    return json;
+  },
+
   displayContacts: async function () {
-    controller.contacts = await model.getContacts();
+    let contactsData = await model.getContacts();
+    controller.contacts = this._formatAllContactTagsToArray(contactsData);
     view.setUpContactsView(controller.contacts);
   },
 
   formContactData: function (contactId) {
     let contactData = controller.contacts.filter(contact => String(contact["id"]) === contactId)[0];
     return controller._formatTagsToDisplayString(contactData);
-  }
+  },
 
+  createContact: function (event) {
+    event.preventDefault();
+    let form;
+    let formData = new FormData(event.currentTarget);
+    let jsonData = this._formDataToJSON(formData);
+    let tagsFormattedData = this._formatTagsToServerString(jsonData);
+    
+    model.addContact(tagsFormattedData);
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
