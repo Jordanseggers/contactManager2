@@ -13,10 +13,30 @@ let model = {
     await fetch('api/contacts', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(jsonData)
+      body: JSON.stringify(data)
     }).then()
     .catch(() => alert('can\'t add contact'));
   
+    controller.displayContacts();
+  },
+
+  editContact: async function (contactId, data) {
+    await fetch(`/api/contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    }).then(res => console.log(res.body))
+      .catch(console.log('failed'));
+
+    controller.displayContacts();
+  },
+
+  deleteContact: async function (contactId) {
+    await fetch(`api/contacts/${contactId}`, {
+      method: 'DELETE'
+    }).then(console.log('successfully deleted'))
+      .catch(console.log('could not delete contact'));
+
     controller.displayContacts();
   }
 };
@@ -60,19 +80,26 @@ let view = {
     div.innerHTML = formTemplate({
       full_name: '',
       email: '',
-      phone_number: ''
+      phone_number: '',
+      id: ''
     });
 
+    div.addEventListener("submit", controller.submitNewContact.bind(this));
     view._render(div);
-  },
+  }.bind(this),
 
   _setUpExistingContactForm: function (existingId) {
     let formTemplate = view._setupTemplate("#contact-form");
-    let form = view._createElement("div");
+    let div = view._createElement("div");
     let existingContactData = controller.formContactData(existingId);
-    form.innerHTML = formTemplate(existingContactData);
+    div.innerHTML = formTemplate(existingContactData);
+
+    console.log('this within setupExistingcontactform');
+    console.log(this);
+
+    div.addEventListener("submit", controller.submitContactEdits.bind(this));
     
-    view._render(form);
+    view._render(div);
   },
 
   _setUpZeroContactsView: function () {
@@ -94,7 +121,7 @@ let view = {
     let addContactBtn = view._getElement(".btn-add-contact", mainBar);
 
     addContactBtn.addEventListener("click", view._setUpNewContactForm);
-  },
+  }.bind(this),
 
   setUpContactsView: function (contacts) {
     let contactList = view._createElement("ul", "contacts-list");
@@ -106,8 +133,8 @@ let view = {
       contactList.innerHTML = contactTemplate({contacts:contacts});
       contactList.addEventListener("click", (event) => {
         if (event.target.classList.contains("delete-contact")) {
-          //deleteContact(event.target.parentNode);
-          console.log("delete was pushed");
+          let contactId = event.target.parentNode.dataset.contactId;
+          controller.deleteContact(contactId);
         } else if (event.target.classList.contains("edit-contact")) {
           let contactId = event.target.parentNode.dataset.contactId;
           view._setUpExistingContactForm(contactId);
@@ -148,8 +175,12 @@ let controller = {
     let serverTagString = dataObject["tags"].split(',').map(tag => {
       return tag.trim();
     });
-    dataObject["tags"] = serverTagString;
+    dataObject["tags"] = serverTagString.join(',');
     return dataObject;
+  },
+  _removeId: function (dataObj) {
+    delete dataObj.id;
+    return dataObj;
   },
 
   _formDataToJSON: function(formData) {
@@ -161,9 +192,21 @@ let controller = {
     return json;
   },
 
+  _sanitizeObject: function (object) {
+    let keys = Object.keys(object);
+    let newObj = {};
+    keys.forEach(key => {
+      if(object[key] !== '') {
+        newObj[key] = object[key];
+      }
+    });
+    return newObj;
+  },
+
   displayContacts: async function () {
+    controller.contacts = null;
     let contactsData = await model.getContacts();
-    controller.contacts = this._formatAllContactTagsToArray(contactsData);
+    controller.contacts = this._formatAllContactTagsToArray(contactsData); //already formatted contact data
     view.setUpContactsView(controller.contacts);
   },
 
@@ -172,14 +215,32 @@ let controller = {
     return controller._formatTagsToDisplayString(contactData);
   },
 
-  createContact: function (event) {
+  submitNewContact: function (event) {
     event.preventDefault();
-    let form;
-    let formData = new FormData(event.currentTarget);
-    let jsonData = this._formDataToJSON(formData);
-    let tagsFormattedData = this._formatTagsToServerString(jsonData);
+    let form = view._getElement("form");
+    let formData = new FormData(form);
+    let jsonData = controller._formDataToJSON(formData);
+    let tagsFormattedData = controller._formatTagsToServerString(jsonData);
+    let idRemovedFromData = controller._removeId(tagsFormattedData);
     
-    model.addContact(tagsFormattedData);
+    model.addContact(idRemovedFromData);
+  },
+
+  submitContactEdits: function (event) {
+    event.preventDefault();
+
+    let form = view._getElement("form");
+    let contactId = form.id;
+    let formData = new FormData(form);
+    let jsonData = controller._formDataToJSON(formData);
+    let tagsFormattedData = controller._formatTagsToServerString(jsonData);
+    let newData = controller._sanitizeObject(tagsFormattedData);
+
+    model.editContact(contactId, newData);
+  },
+
+  deleteContact: function (contactId) {
+    model.deleteContact(contactId);
   }
 };
 
