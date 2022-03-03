@@ -14,7 +14,7 @@ let model = {
     }).then(res => {
       return res.json();
     }).catch(() => alert('can\'t get contacts'));
-    return this._formatContacts(contacts);
+    return model._formatContacts(contacts);
   }
 };
 
@@ -39,8 +39,8 @@ let view = {
     return element;
   },
 
-  setupTemplate: function (templateId) {
-    let html = this.getElement(templateId).innerHTML;
+  _setupTemplate: function (templateId) {
+    let html = view.getElement(templateId).innerHTML;
     let template = Handlebars.compile(html);
     return template;
   },
@@ -51,24 +51,63 @@ let view = {
     app.append(view);
   },
 
+  _setUpNewContactForm: function () {
+    let formTemplate = view._setupTemplate("#contact-form");
+    let div = view.createElement("div");
+    div.innerHTML = formTemplate({
+      full_name: '',
+      email: '',
+      phone_number: ''
+    });
+
+    view.render(div);
+  },
+
+  _setUpExistingContactForm: function (existingId) {
+    let formTemplate = view._setupTemplate("#contact-form");
+    let div = view.createElement("div");
+    let existingContactData = controller.formContactData(existingId);
+    div.innerHTML = formTemplate(existingContactData);
+    
+    view.render(div);
+  },
+
+  _setUpZeroContactsView: function () {
+    let div = view.createElement('div');
+    let zeroContactsTemplate = view.setupTemplate("#no-contacts");
+    div.innerHTML = zeroContactsTemplate();
+    div.addEventListener("click", (event) => {
+      if (event.target.classList.contains("btn-add-contact")) {
+        console.log('add contact button pressed');
+        view._setUpNewContactForm();
+      }
+    });
+
+    view.render(div);
+  },
+
+  setUpMainBarEvents: function () {
+    let mainBar = view.getElement(".row-well");
+    let addContactBtn = view.getElement(".btn-add-contact", mainBar);
+
+    addContactBtn.addEventListener("click", view._setUpNewContactForm);
+  },
+
   setUpContactsView: function (contacts) {
-    let contactList = this.createElement("ul", "contacts-list");
+    let contactList = view.createElement("ul", "contacts-list");
 
     if (contacts.length === 0) {
-      let noContactsMessage = this.createElement('p');
-      noContactsMessage.textContent = "There are no contacts";
-      contactList.append(noContactsMessage);
+      view._setUpZeroContactsView();
     } else {
-      let contactTemplate = this.setupTemplate("#contactCard");
+      let contactTemplate = view._setupTemplate("#contactCard");
       contactList.innerHTML = contactTemplate({contacts:contacts});
       contactList.addEventListener("click", (event) => {
         if (event.target.classList.contains("delete-contact")) {
           //deleteContact(event.target.parentNode);
           console.log("delete was pushed");
         } else if (event.target.classList.contains("edit-contact")) {
-          //let contactId = event.target.parentNode.dataset.contactId;
-          //contactForm(Number(contactId));
-          console.log("edit was pushed");
+          let contactId = event.target.parentNode.dataset.contactId;
+          view._setUpExistingContactForm(contactId);
         } else if (event.target.classList.contains("tag")) {
           // event.preventDefault();
           // let tag = event.target.textContent;
@@ -78,19 +117,34 @@ let view = {
       });
     }
 
-    this.render(contactList);
+    view.render(contactList);
   }
 };
 
 let controller = {
   contacts: [], //arr of contacts formatted with tags as an array of strings
 
+  _formatTagsToDisplayString: function (contact) {
+    let newFormattedContactData = {...contact};
+    if (newFormattedContactData.tags) {  //does this need a second case for a blank string??? Maybe swap space for null in submittal
+      newFormattedContactData.tags = newFormattedContactData.tags.join(', ') + ', ...';
+    }
+    return newFormattedContactData;
+  },
+
   displayContacts: async function () {
-    this.contacts = await model.getContacts();
-    view.setUpContactsView(this.contacts);
+    controller.contacts = await model.getContacts();
+    view.setUpContactsView(controller.contacts);
+  },
+
+  formContactData: function (contactId) {
+    let contactData = controller.contacts.filter(contact => String(contact["id"]) === contactId)[0];
+    return controller._formatTagsToDisplayString(contactData);
   }
+
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  view.setUpMainBarEvents();
   controller.displayContacts();
 });
