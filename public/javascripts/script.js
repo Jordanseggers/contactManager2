@@ -25,17 +25,17 @@ let model = {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
-    }).then(res => console.log(res.body))
-      .catch(console.log('failed'));
+    }).then()
+    .catch(() => alert("can\'t edit contact"));
 
-    controller.displayContacts();
+  controller.displayContacts();
   },
 
   deleteContact: async function (contactId) {
-    await fetch(`api/contacts/${contactId}`, {
-      method: 'DELETE'
-    }).then(console.log('successfully deleted'))
-      .catch(console.log('could not delete contact'));
+    await fetch(`/api/contacts/${contactId}`, {
+      method: "DELETE",
+    }).then()
+      .catch(() => alert("can\'t delete contact"));
 
     controller.displayContacts();
   }
@@ -84,7 +84,9 @@ let view = {
       id: ''
     });
 
-    div.addEventListener("submit", controller.submitNewContact.bind(this));
+    div.addEventListener("submit", controller.submitNewContact);
+    let cancelButton = view._getElement('.btn-close-form', div);
+    cancelButton.addEventListener('click', controller.cancelForm);
     view._render(div);
   }.bind(this),
 
@@ -94,10 +96,9 @@ let view = {
     let existingContactData = controller.formContactData(existingId);
     div.innerHTML = formTemplate(existingContactData);
 
-    console.log('this within setupExistingcontactform');
-    console.log(this);
-
     div.addEventListener("submit", controller.submitContactEdits.bind(this));
+    let cancelButton = view._getElement('.btn-close-form', div);
+    cancelButton.addEventListener('click', controller.cancelForm);
     
     view._render(div);
   },
@@ -163,10 +164,12 @@ let view = {
     if (contacts.length === 0) {
       view._setUpZeroContactsView();
     } else {
-      let contactTemplate = view._setupTemplate("#contactCard");
+      let contactTemplate = view._setupTemplate("#contact-card");
       contactList.innerHTML = contactTemplate({contacts:contacts});
       contactList.addEventListener("click", (event) => {
         if (event.target.classList.contains("delete-contact")) {
+          let message = confirm('Are you sure you want to delete this contact?');
+          if (!message) return;
           let contactId = event.target.parentNode.dataset.contactId;
           controller.deleteContact(contactId);
         } else if (event.target.classList.contains("edit-contact")) {
@@ -274,6 +277,11 @@ let controller = {
 
   deleteContact: function (contactId) {
     model.deleteContact(contactId);
+  },
+
+  cancelForm: function (event) {
+    event.preventDefault();
+    view.setUpContactsView(controller.contacts);
   }
 };
 

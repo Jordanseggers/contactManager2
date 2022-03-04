@@ -49,33 +49,35 @@
       </div>
     </form>
   </script>
-  <script id="contactCard" type="text/x-handlebars">
+  <script id="contact-card" type="text/x-handlebars">
     {{#each contacts}}
       <li class="media col-md-3 col-sm-4 card" data-contact-id="{{id}}">
-        <div class="media-heading">
-          <h3>{{full_name}}</h3>
+        <div class="size">
+          <div class="media-heading">
+            <h3>{{full_name}}</h3>
+          </div>
+          <div class="media-body">
+            <dl>
+              <dt>Phone Number:</dt>
+              <dd>{{phone_number}}</dd>
+              <dt>Email:</dt>
+              <dd>{{email}}</dd>
+              <dt>Tags:</dd>
+              <dd class="tag-space"></dd>
+            </dl>
+          </div>
+          <div class="contact-tags">
+            {{#if tags}}
+              {{#each tags}}
+                <a href="#" class="tag">{{this}}</a>
+              {{/each}}
+            {{/if}}
+          </div>
         </div>
-        <div class="media-body">
-          <dl>
-            <dt>Phone Number:</dt>
-            <dd>{{phone_number}}</dd>
-            <dt>Email:</dt>
-            <dd>{{email}}</dd>
-            <dt>Tags:</dd>
-            <dd class="tag-space"></dd>
-          </dl>
-        </div>
-        <div class="contact-tags">
-          {{#if tags}}
-            {{#each tags}}
-              <a href="#" class="tag">{{this}}</a>
-            {{/each}}
-          {{/if}}
-        </div>
-        <div class="contact-btn-wrapper" data-contact-id="{{id}}">
-          <a href="#" class="edit-contact btn btn-outline">Edit</a>
-          <a href="#" class="delete-contact btn btn-outline">Delete</a>
-        </div>
+          <div class="contact-btn-wrapper" data-contact-id="{{id}}">
+            <a href="#" class="edit-contact btn btn-outline">Edit</a>
+            <a href="#" class="delete-contact btn btn-outline">Delete</a>
+          </div>
         <hr>
       </li>
     {{/each}}
@@ -110,7 +112,7 @@
     </div>
 
     <div class="footer text-center">
-      <p>Developed by <a href="http://www.devsaran.com">Jordan</a></p>
+      <p>Developed by <a href="https://launchschool.com/course_catalog">Launch School</a> and <a href="https://www.linkedin.com/in/jordan-shay-eggers-designer/">Jordan</a></p>
     </div>
   </div>
   <script src="javascripts/script.js"></script>

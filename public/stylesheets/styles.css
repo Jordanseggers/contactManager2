@@ -348,3 +348,7 @@ hr {
 .hide {
   display: none;
 }
+.size {
+  height: 260px;
+  width: 270px;
+}
