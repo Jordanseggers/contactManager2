@@ -116,11 +116,45 @@ let view = {
     view._render(div);
   },
 
+  _filterContactsByTag: function (tag) {
+    let cards = document.querySelectorAll(".card");
+    let cardsArr = Array.prototype.slice.call(cards);
+  
+    cardsArr.forEach(card => {
+      let cardTags = Array.prototype.slice.call(card.querySelectorAll('.tag')).map(tag => {
+        return tag.textContent;
+      });
+      if (!cardTags.includes(tag)) {
+        card.classList.toggle('hide', true);
+      }
+    }); //this really needs a way to unfilter
+  },
+
+  _filterContactsByFullName: function (event) {
+    let value = event.target.value;
+    let cards = document.querySelectorAll(".card");
+    let cardsArr = Array.prototype.slice.call(cards);
+
+    cardsArr.forEach(card => {
+      if (value === "") {
+        card.classList.toggle('hide', false);
+      } else {
+        let name = card.querySelector('h3').textContent;
+        let includes = value;
+        if (!name.match(new RegExp(includes))) {
+          card.classList.toggle('hide', true);
+        }
+      }
+    })
+  },
+
   setUpMainBarEvents: function () {
     let mainBar = view._getElement(".row-well");
     let addContactBtn = view._getElement(".btn-add-contact", mainBar);
+    let searchInput = view._getElement(".contact-name-search");
 
     addContactBtn.addEventListener("click", view._setUpNewContactForm);
+    searchInput.addEventListener("input", view._filterContactsByFullName);
   }.bind(this),
 
   setUpContactsView: function (contacts) {
@@ -139,10 +173,9 @@ let view = {
           let contactId = event.target.parentNode.dataset.contactId;
           view._setUpExistingContactForm(contactId);
         } else if (event.target.classList.contains("tag")) {
-          // event.preventDefault();
-          // let tag = event.target.textContent;
-          // filterByTag(tag);
-          console.log("tag was clicked");
+          event.preventDefault();
+          let tag = event.target.textContent;
+          view._filterContactsByTag(tag);
         }
       });
     }
