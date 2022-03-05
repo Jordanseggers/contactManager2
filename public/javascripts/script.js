@@ -15,9 +15,7 @@ let model = {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
     }).then()
-    .catch(() => alert('can\'t add contact'));
-  
-    controller.displayContacts();
+      .catch(() => alert('can\'t add contact'));
   },
 
   editContact: async function (contactId, data) {
@@ -26,18 +24,14 @@ let model = {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(data)
     }).then()
-    .catch(() => alert("can\'t edit contact"));
-
-  controller.displayContacts();
+      .catch(() => alert('can\'t edit contact'));
   },
 
   deleteContact: async function (contactId) {
     await fetch(`/api/contacts/${contactId}`, {
       method: "DELETE",
     }).then()
-      .catch(() => alert("can\'t delete contact"));
-
-    controller.displayContacts();
+      .catch(() => alert('can\'t delete contact'));
   }
 };
 
@@ -88,7 +82,7 @@ let view = {
     let cancelButton = view._getElement('.btn-close-form', div);
     cancelButton.addEventListener('click', controller.cancelForm);
     view._render(div);
-  }.bind(this),
+  },
 
   _setUpExistingContactForm: function (existingId) {
     let formTemplate = view._setupTemplate("#contact-form");
@@ -96,7 +90,7 @@ let view = {
     let existingContactData = controller.formContactData(existingId);
     div.innerHTML = formTemplate(existingContactData);
 
-    div.addEventListener("submit", controller.submitContactEdits.bind(this));
+    div.addEventListener("submit", controller.submitContactEdits);
     let cancelButton = view._getElement('.btn-close-form', div);
     cancelButton.addEventListener('click', controller.cancelForm);
     
@@ -156,7 +150,7 @@ let view = {
 
     addContactBtn.addEventListener("click", view._setUpNewContactForm);
     searchInput.addEventListener("input", view._filterContactsByFullName);
-  }.bind(this),
+  },
 
   setUpContactsView: function (contacts) {
     let contactList = view._createElement("ul", "contacts-list");
@@ -260,6 +254,7 @@ let controller = {
     let idRemovedFromData = controller._removeId(tagsFormattedData);
     
     model.addContact(idRemovedFromData);
+    controller.displayContacts();
   },
 
   submitContactEdits: function (event) {
@@ -273,10 +268,12 @@ let controller = {
     let newData = controller._sanitizeObject(tagsFormattedData);
 
     model.editContact(contactId, newData);
+    controller.displayContacts();
   },
 
   deleteContact: function (contactId) {
     model.deleteContact(contactId);
+    controller.displayContacts();
   },
 
   cancelForm: function (event) {
