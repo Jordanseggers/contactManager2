@@ -36,7 +36,8 @@ let model = {
 };
 
 let view = {
-  _getElement: function (selector, ancestorElement) {
+
+  getElement: function (selector, ancestorElement) {
     let element;
     if (ancestorElement) {
       element = ancestorElement.querySelector(selector);
@@ -57,50 +58,21 @@ let view = {
   },
 
   _setupTemplate: function (templateId) {
-    let html = view._getElement(templateId).innerHTML;
+    let html = view.getElement(templateId).innerHTML;
     let template = Handlebars.compile(html);
     return template;
   },
 
   _render: function (view) {
-    let app = this._getElement('#root');
+    let app = this.getElement('#root');
     app.innerHTML = '';
     app.append(view);
-  },
-
-  _setUpNewContactForm: function () {
-    let formTemplate = view._setupTemplate("#contact-form");
-    let div = view._createElement("div", "contact-to-create");
-    div.innerHTML = formTemplate({
-      full_name: '',
-      email: '',
-      phone_number: '',
-      id: ''
-    });
-
-    view._render(div);
-  },
-
-  _setUpExistingContactForm: function (existingContactData) {
-    let formTemplate = view._setupTemplate("#contact-form");
-    let div = view._createElement("div", "contact-to-edit");
-    div.innerHTML = formTemplate(existingContactData);
-
-    view._render(div);
-  },
-
-  _setUpZeroContactsView: function () {
-    let div = view._createElement('div', "no-contacts-at-all");
-    let zeroContactsTemplate = view.setupTemplate("#no-contacts");
-    div.innerHTML = zeroContactsTemplate();
-
-    view._render(div);
   },
 
   _filterContactsByTag: function (tag) {
     let cards = document.querySelectorAll(".card");
     let cardsArr = Array.prototype.slice.call(cards);
-  
+
     cardsArr.forEach(card => {
       let cardTags = Array.prototype.slice.call(card.querySelectorAll('.tag')).map(tag => {
         return tag.textContent;
@@ -129,6 +101,35 @@ let view = {
     });
   },
 
+  setUpNewContactForm: function () {
+    let formTemplate = view._setupTemplate("#contact-form");
+    let div = view._createElement("div", "contact-to-create");
+    div.innerHTML = formTemplate({
+      full_name: '',
+      email: '',
+      phone_number: '',
+      id: ''
+    });
+
+    view._render(div);
+  },
+
+  setUpExistingContactForm: function (existingContactData) {
+    let formTemplate = view._setupTemplate("#contact-form");
+    let div = view._createElement("div", "contact-to-edit");
+    div.innerHTML = formTemplate(existingContactData);
+
+    view._render(div);
+  },
+
+  setUpZeroContactsView: function () {
+    let div = view._createElement('div', "no-contacts-at-all");
+    let zeroContactsTemplate = view.setupTemplate("#no-contacts");
+    div.innerHTML = zeroContactsTemplate();
+
+    view._render(div);
+  },
+
   setUpContactsView: function (contacts) {
     let contactList = view._createElement("ul", "contacts-list");
 
@@ -143,12 +144,12 @@ let controller = {
   contacts: [], //arr of contacts formatted with tags as an array of strings
 
   _setUpMainBarEvents: function () {
-    let mainBar = view._getElement(".row-well");
-    let addContactBtn = view._getElement(".btn-add-contact", mainBar);
-    let searchInput = view._getElement(".contact-name-search");
+    let mainBar = view.getElement(".row-well");
+    let addContactBtn = view.getElement(".btn-add-contact", mainBar);
+    let searchInput = view.getElement(".contact-name-search");
 
     addContactBtn.addEventListener("click", () => {
-      view._setUpNewContactForm();
+      view.setUpNewContactForm();
       controller._newContactFormEventListeners();
     });
     searchInput.addEventListener("input", view._filterContactsByFullName);
@@ -165,7 +166,7 @@ let controller = {
 
   _formatTagsToDisplayString: function (contact) {
     let newFormattedContactData = {...contact};
-    if (newFormattedContactData.tags) { 
+    if (newFormattedContactData.tags) {
       newFormattedContactData.tags = newFormattedContactData.tags.join(', ') + ', ...';
     }
     return newFormattedContactData;
@@ -204,8 +205,8 @@ let controller = {
   },
 
   _contactsEventListeners: function () {
-    let contactList = view._getElement(".contacts-list");
-    
+    let contactList = view.getElement(".contacts-list");
+
     contactList.addEventListener("click", (event) => {
       if (event.target.classList.contains("delete-contact")) {
         let message = confirm('Are you sure you want to delete this contact?');
@@ -215,7 +216,7 @@ let controller = {
       } else if (event.target.classList.contains("edit-contact")) {
         let contactId = event.target.parentNode.dataset.contactId;
         let contactData = controller.formContactData(contactId);
-        view._setUpExistingContactForm(contactData);
+        view.setUpExistingContactForm(contactData);
         controller._existingContactFormEventListeners();
       } else if (event.target.classList.contains("tag")) {
         event.preventDefault();
@@ -226,16 +227,16 @@ let controller = {
   },
 
   _newContactFormEventListeners: function () {
-    let div = view._getElement(".contact-to-create");
-    let cancelButton = view._getElement('.btn-close-form', div);
+    let div = view.getElement(".contact-to-create");
+    let cancelButton = view.getElement('.btn-close-form', div);
 
     div.addEventListener("submit", controller.submitNewContact);
     cancelButton.addEventListener('click', controller.cancelForm);
   },
 
   _existingContactFormEventListeners: function () {
-    let div = view._getElement(".contact-to-edit");
-    let cancelButton = view._getElement('.btn-close-form', div);
+    let div = view.getElement(".contact-to-edit");
+    let cancelButton = view.getElement('.btn-close-form', div);
 
     div.addEventListener("submit", controller.submitContactEdits);
     cancelButton.addEventListener('click', controller.cancelForm);
@@ -250,7 +251,7 @@ let controller = {
       view.setUpContactsView(controller.contacts);
       controller._contactsEventListeners();
     } else {
-      view._setUpZeroContactsView();
+      view.setUpZeroContactsView();
       controller.ZeroContactsEventListener();
     }
 
@@ -263,12 +264,12 @@ let controller = {
 
   submitNewContact: function (event) {
     event.preventDefault();
-    let form = view._getElement("form");
+    let form = view.getElement("form");
     let formData = new FormData(form);
     let jsonData = controller._formDataToJSON(formData);
     let tagsFormattedData = controller._formatTagsToServerString(jsonData);
     let idRemovedFromData = controller._removeId(tagsFormattedData);
-    
+
     model.addContact(idRemovedFromData);
     controller.displayContacts();
   },
@@ -276,7 +277,7 @@ let controller = {
   submitContactEdits: function (event) {
     event.preventDefault();
 
-    let form = view._getElement("form");
+    let form = view.getElement("form");
     let contactId = form.id;
     let formData = new FormData(form);
     let jsonData = controller._formDataToJSON(formData);
@@ -298,11 +299,11 @@ let controller = {
   },
 
   zeroContactsEventListener: function () {
-    let div = view._getElement(".no-contacts-at-all");
+    let div = view.getElement(".no-contacts-at-all");
     div.addEventListener("click", (event) => {
       if (event.target.classList.contains("btn-add-contact")) {
         console.log('add contact button pressed');
-        view._setUpNewContactForm();
+        view.setUpNewContactForm();
         controller._newContactFormEventListeners();
       }
     });
