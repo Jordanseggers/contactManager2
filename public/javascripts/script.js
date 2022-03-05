@@ -70,7 +70,7 @@ let view = {
 
   _setUpNewContactForm: function () {
     let formTemplate = view._setupTemplate("#contact-form");
-    let div = view._createElement("div");
+    let div = view._createElement("div", "contact-to-create");
     div.innerHTML = formTemplate({
       full_name: '',
       email: '',
@@ -78,35 +78,21 @@ let view = {
       id: ''
     });
 
-    div.addEventListener("submit", controller.submitNewContact);
-    let cancelButton = view._getElement('.btn-close-form', div);
-    cancelButton.addEventListener('click', controller.cancelForm);
     view._render(div);
   },
 
-  _setUpExistingContactForm: function (existingId) {
+  _setUpExistingContactForm: function (existingContactData) {
     let formTemplate = view._setupTemplate("#contact-form");
-    let div = view._createElement("div");
-    let existingContactData = controller.formContactData(existingId);
+    let div = view._createElement("div", "contact-to-edit");
     div.innerHTML = formTemplate(existingContactData);
 
-    div.addEventListener("submit", controller.submitContactEdits);
-    let cancelButton = view._getElement('.btn-close-form', div);
-    cancelButton.addEventListener('click', controller.cancelForm);
-    
     view._render(div);
   },
 
   _setUpZeroContactsView: function () {
-    let div = view._createElement('div');
+    let div = view._createElement('div', "no-contacts-at-all");
     let zeroContactsTemplate = view.setupTemplate("#no-contacts");
     div.innerHTML = zeroContactsTemplate();
-    div.addEventListener("click", (event) => {
-      if (event.target.classList.contains("btn-add-contact")) {
-        console.log('add contact button pressed');
-        view._setUpNewContactForm();
-      }
-    });
 
     view._render(div);
   },
@@ -122,7 +108,7 @@ let view = {
       if (!cardTags.includes(tag)) {
         card.classList.toggle('hide', true);
       }
-    }); //this really needs a way to unfilter
+    });
   },
 
   _filterContactsByFullName: function (event) {
@@ -140,42 +126,14 @@ let view = {
           card.classList.toggle('hide', true);
         }
       }
-    })
-  },
-
-  setUpMainBarEvents: function () {
-    let mainBar = view._getElement(".row-well");
-    let addContactBtn = view._getElement(".btn-add-contact", mainBar);
-    let searchInput = view._getElement(".contact-name-search");
-
-    addContactBtn.addEventListener("click", view._setUpNewContactForm);
-    searchInput.addEventListener("input", view._filterContactsByFullName);
+    });
   },
 
   setUpContactsView: function (contacts) {
     let contactList = view._createElement("ul", "contacts-list");
 
-    if (contacts.length === 0) {
-      view._setUpZeroContactsView();
-    } else {
-      let contactTemplate = view._setupTemplate("#contact-card");
-      contactList.innerHTML = contactTemplate({contacts:contacts});
-      contactList.addEventListener("click", (event) => {
-        if (event.target.classList.contains("delete-contact")) {
-          let message = confirm('Are you sure you want to delete this contact?');
-          if (!message) return;
-          let contactId = event.target.parentNode.dataset.contactId;
-          controller.deleteContact(contactId);
-        } else if (event.target.classList.contains("edit-contact")) {
-          let contactId = event.target.parentNode.dataset.contactId;
-          view._setUpExistingContactForm(contactId);
-        } else if (event.target.classList.contains("tag")) {
-          event.preventDefault();
-          let tag = event.target.textContent;
-          view._filterContactsByTag(tag);
-        }
-      });
-    }
+    let contactTemplate = view._setupTemplate("#contact-card");
+    contactList.innerHTML = contactTemplate({contacts:contacts});
 
     view._render(contactList);
   }
@@ -183,6 +141,18 @@ let view = {
 
 let controller = {
   contacts: [], //arr of contacts formatted with tags as an array of strings
+
+  _setUpMainBarEvents: function () {
+    let mainBar = view._getElement(".row-well");
+    let addContactBtn = view._getElement(".btn-add-contact", mainBar);
+    let searchInput = view._getElement(".contact-name-search");
+
+    addContactBtn.addEventListener("click", () => {
+      view._setUpNewContactForm();
+      controller._newContactFormEventListeners();
+    });
+    searchInput.addEventListener("input", view._filterContactsByFullName);
+  },
 
   _formatAllContactTagsToArray: function (contacts) { //splits tags string into array of tags
     contacts.forEach(contact => {
@@ -195,7 +165,7 @@ let controller = {
 
   _formatTagsToDisplayString: function (contact) {
     let newFormattedContactData = {...contact};
-    if (newFormattedContactData.tags) {  //does this need a second case for a blank string??? Maybe swap space for null in submittal
+    if (newFormattedContactData.tags) { 
       newFormattedContactData.tags = newFormattedContactData.tags.join(', ') + ', ...';
     }
     return newFormattedContactData;
@@ -226,18 +196,64 @@ let controller = {
     let keys = Object.keys(object);
     let newObj = {};
     keys.forEach(key => {
-      if(object[key] !== '') {
+      if (object[key] !== '') {
         newObj[key] = object[key];
       }
     });
     return newObj;
   },
 
+  _contactsEventListeners: function () {
+    let contactList = view._getElement(".contacts-list");
+    
+    contactList.addEventListener("click", (event) => {
+      if (event.target.classList.contains("delete-contact")) {
+        let message = confirm('Are you sure you want to delete this contact?');
+        if (!message) return;
+        let contactId = event.target.parentNode.dataset.contactId;
+        controller.deleteContact(contactId);
+      } else if (event.target.classList.contains("edit-contact")) {
+        let contactId = event.target.parentNode.dataset.contactId;
+        let contactData = controller.formContactData(contactId);
+        view._setUpExistingContactForm(contactData);
+        controller._existingContactFormEventListeners();
+      } else if (event.target.classList.contains("tag")) {
+        event.preventDefault();
+        let tag = event.target.textContent;
+        view._filterContactsByTag(tag);
+      }
+    });
+  },
+
+  _newContactFormEventListeners: function () {
+    let div = view._getElement(".contact-to-create");
+    let cancelButton = view._getElement('.btn-close-form', div);
+
+    div.addEventListener("submit", controller.submitNewContact);
+    cancelButton.addEventListener('click', controller.cancelForm);
+  },
+
+  _existingContactFormEventListeners: function () {
+    let div = view._getElement(".contact-to-edit");
+    let cancelButton = view._getElement('.btn-close-form', div);
+
+    div.addEventListener("submit", controller.submitContactEdits);
+    cancelButton.addEventListener('click', controller.cancelForm);
+  },
+
   displayContacts: async function () {
     controller.contacts = null;
     let contactsData = await model.getContacts();
-    controller.contacts = this._formatAllContactTagsToArray(contactsData); //already formatted contact data
-    view.setUpContactsView(controller.contacts);
+    controller.contacts = this._formatAllContactTagsToArray(contactsData);
+
+    if (controller.contacts.length > 0) {
+      view.setUpContactsView(controller.contacts);
+      controller._contactsEventListeners();
+    } else {
+      view._setUpZeroContactsView();
+      controller.ZeroContactsEventListener();
+    }
+
   },
 
   formContactData: function (contactId) {
@@ -278,11 +294,22 @@ let controller = {
 
   cancelForm: function (event) {
     event.preventDefault();
-    view.setUpContactsView(controller.contacts);
+    controller.displayContacts();
+  },
+
+  zeroContactsEventListener: function () {
+    let div = view._getElement(".no-contacts-at-all");
+    div.addEventListener("click", (event) => {
+      if (event.target.classList.contains("btn-add-contact")) {
+        console.log('add contact button pressed');
+        view._setUpNewContactForm();
+        controller._newContactFormEventListeners();
+      }
+    });
   }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  view.setUpMainBarEvents();
+  controller._setUpMainBarEvents();
   controller.displayContacts();
 });
